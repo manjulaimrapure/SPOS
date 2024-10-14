@@ -1,103 +1,113 @@
-import java.util.*;
-import java.io.*;
-public class macro
-{
-public static void main(String args[])
-{
-BufferedReader br;
-OutputStream oo;
-String input=null;
-String tt=null;
-String arg=null;
-String macroTokens=null;
-String mnt[]=new String[10];
-String mdt[]=new String[20];
-String AR[]=new String[20];
-int macroindex[]=new int[10];
-int mcount=0,arg_count=0;
-int middlecount=0;
-int index=1;
-int macro_enc=0;
-try
-{
-br=new BufferedReader(new FileReader("Input.txt"));
-File f3 = new File("mnt.txt");
-File f4 = new File("mdt.txt");
-File f5 = new File("adt.txt");
-PrintWriter p3 = new PrintWriter(f3);
-PrintWriter p4 = new PrintWriter(f4);
-PrintWriter p5 = new PrintWriter(f5);
-while ((input = br.readLine()) != null)
-{
-StringTokenizer st = new StringTokenizer(input," ");
-tt=st.nextToken();
-if(tt.equals("MACRO"))
-{
-macro_enc=1;
-tt=st.nextToken();
-mnt[mcount]=tt;
-macroindex[mcount]=index;
-p3.println(mnt[mcount]+"\t"+macroindex[mcount]);
-p4.println(mnt[mcount]);
-p5.println(mnt[mcount]);
-mcount++;
-tt=st.nextToken();
-StringTokenizer t = new StringTokenizer(tt,",");
-while (t.hasMoreTokens())
-{
-arg=t.nextToken();
-if(arg.charAt(0)=='&')
-{
-AR[arg_count]=arg;
-p5.println(AR[arg_count]);
-arg_count++;
-}
-}
-}
-else
-{
-if(macro_enc==1)
-{
-if(input.equals("MEND"))
-{
-macro_enc=0;
-p4.println("MEND");
-}
-else
-{
-StringTokenizer t=new StringTokenizer(input," ");
-while(t.hasMoreTokens())
-{
-macroTokens=t.nextToken();
-for(int i=0;i<arg_count;i++)
-{
-if(macroTokens.charAt(0)=='&' && macroTokens.equals(AR[i]))
-{
-p4.print("AR"+i);
-}
-}
-if(macroTokens.charAt(0)=='&'){}
-else
-{
-p4.print(macroTokens+" ");
-}
-if(!t.hasMoreTokens())
-{
-p4.println();
-}
-}
-}
-}
-}
-index++;
-}
-p3.close();
-p4.close();
-p5.close();
-}
-catch(Exception e)
-{
-e.printStackTrace();
-}
-}
+package macro;
+import java.util.*; 
+import java.io.*; 
+
+class pass1_macro {
+    static String mnt[][] = new String[5][3];  // assuming 5 macros in 1 program
+    static String ala[][] = new String[10][2]; // assuming 2 arguments in each macro
+    static String mdt[][] = new String[20][1]; // assuming 4 LOC for each macro
+    static int mntc = 0, mdtc = 0, alac = 0;
+
+    public static void main(String args[]) {
+        pass1();
+
+        System.out.println("\n*********PASS-1 MACROPROCESSOR***********\n");
+        System.out.println("MACRO NAME TABLE (MNT)\n");
+        System.out.println("i  macro  loc\n");
+        display(mnt, mntc, 3);
+
+        System.out.println("\nARGUMENT LIST ARRAY (ALA) for Pass1\n");
+        display(ala, alac, 2);
+
+        System.out.println("\nMACRO DEFINITION TABLE (MDT)\n");
+        display(mdt, mdtc, 1);
+
+        System.out.println("\n");
+    }
+
+    static void pass1() {
+        int index = 0, i;
+        String s, prev = "", substring;
+
+        try {
+            BufferedReader inp = new BufferedReader(new FileReader("input.txt"));
+            File op = new File("pass1_output.txt");
+
+            if (!op.exists()) {
+                op.createNewFile();
+            }
+
+            BufferedWriter output = new BufferedWriter(new FileWriter(op.getAbsoluteFile()));
+
+            while ((s = inp.readLine()) != null) {
+                if (s.equalsIgnoreCase("MACRO")) {
+                    prev = s;
+
+                    for (; !(s = inp.readLine()).equalsIgnoreCase("MEND"); mdtc++, prev = s) {
+                        if (prev.equalsIgnoreCase("MACRO")) {
+                            StringTokenizer st = new StringTokenizer(s);
+                            String str[] = new String[st.countTokens()];
+
+                            for (i = 0; i < str.length; i++) {
+                                str[i] = st.nextToken();
+                            }
+
+                            mnt[mntc][0] = (mntc + 1) + ""; // mnt formation
+                            mnt[mntc][1] = str[0];
+                            mnt[mntc++][2] = (++mdtc) + "";
+
+                            st = new StringTokenizer(str[1], ","); // tokenizing the arguments
+                            String string[] = new String[st.countTokens()];
+
+                            for (i = 0; i < string.length; i++) {
+                                string[i] = st.nextToken();
+                                ala[alac][0] = alac + ""; // ala table formation
+
+                                index = string[i].indexOf("=");
+                                if (index != -1) {
+                                    ala[alac++][1] = string[i].substring(0, index);
+                                } else {
+                                    ala[alac++][1] = string[i];
+                                }
+                            }
+                        } else {
+                            // automatically eliminates tagging of arguments in definition
+                            index = s.indexOf("&");
+                            substring = s.substring(index);
+
+                            for (i = 0; i < alac; i++) {
+                                if (ala[i][1].equals(substring)) {
+                                    s = s.replaceAll(substring, "#" + ala[i][0]);
+                                }
+                            }
+                        }
+
+                        mdt[mdtc - 1][0] = s;
+                    }
+
+                    mdt[mdtc - 1][0] = s;
+                } else {
+                    output.write(s);
+                    output.newLine();
+                }
+            }
+
+            output.close();
+        } catch (FileNotFoundException ex) {
+            System.out.println("UNABLE TO FIND FILE ");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    static void display(String a[][], int n, int m) {
+        int i, j;
+
+        for (i = 0; i < n; i++) {
+            for (j = 0; j < m; j++) {
+                System.out.print(a[i][j] + " ");
+            }
+            System.out.println();
+        }
+    }
 }
